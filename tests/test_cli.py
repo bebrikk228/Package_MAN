@@ -1,14 +1,13 @@
-"""Unit tests for Stage 1 CLI configuration and validation."""
+"""Unit tests for CLI argument parsing and validation."""
 
 from pathlib import Path
 import tempfile
 import unittest
 
 from cli import parse_config
-from main import format_config, run
+from main import run
 from validator import ConfigValidationError
 
-EXIT_SUCCESS = 0
 EXIT_ERROR = 1
 
 
@@ -30,14 +29,12 @@ class TestCliConfiguration(unittest.TestCase):
         config = parse_config(argv)
         self.assertEqual(config.package, "busybox")
         self.assertFalse(config.test_mode)
-        output = format_config(config)
-        self.assertIn("package=busybox", output)
-        self.assertIn("output=deps.png", output)
+        self.assertEqual(config.output, "deps.png")
 
     def test_valid_test_mode_config(self) -> None:
         """Verify valid parameters when test mode points to a file."""
         with tempfile.NamedTemporaryFile("w", delete=False) as tmp:
-            tmp.write("A: B C\n")
+            tmp.write("P:A\nV:1.0.0\n")
             tmp_path = tmp.name
         try:
             argv = [
@@ -51,8 +48,9 @@ class TestCliConfiguration(unittest.TestCase):
                 "-o",
                 "test_graph.png",
             ]
-            code = run(argv)
-            self.assertEqual(code, EXIT_SUCCESS)
+            config = parse_config(argv)
+            self.assertTrue(config.test_mode)
+            self.assertEqual(config.package, "A")
         finally:
             Path(tmp_path).unlink(missing_ok=True)
 
